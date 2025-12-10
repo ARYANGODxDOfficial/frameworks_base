@@ -1372,8 +1372,15 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     }
 
     private void shortPressPowerGoHome() {
-        launchHomeFromHotKey(DEFAULT_DISPLAY, true /* awakenFromDreams */,
-                false /*respectKeyguard*/);
+        KeyGestureEvent keyGestureEvent =
+                new KeyGestureEvent.Builder()
+                        .setKeyGestureType(KeyGestureEvent.KEY_GESTURE_TYPE_HOME)
+                        .setAction(KeyGestureEvent.ACTION_GESTURE_COMPLETE)
+                        .setDisplayId(mDefaultDisplay.getDisplayId())
+                        .setKeycodes(new int[] {KEYCODE_POWER})
+                        .setModifierState(/* metaState= */ 0)
+                        .build();
+        mInputManagerInternal.handleKeyGestureInKeyGestureController(keyGestureEvent);
         if (isKeyguardShowingAndNotOccluded()) {
             // Notify keyguard so it can do any special handling for the power button since the
             // device will not power off and only launch home.
@@ -5788,8 +5795,17 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     }
 
     @Override
-    public boolean isScreenOn() {
-        return mDefaultDisplayPolicy.isScreenOnEarly();
+    public boolean isScreenOn(int displayId) {
+        final DisplayPolicy policy = getDisplayPolicy(displayId);
+        return policy != null && policy.isScreenOnEarly();
+    }
+
+    @Nullable
+    private DisplayPolicy getDisplayPolicy(int displayId) {
+        if (displayId == DEFAULT_DISPLAY) {
+            return mDefaultDisplayPolicy;
+        }
+        return mWindowManagerInternal.getDisplayPolicy(displayId);
     }
 
     @Override
